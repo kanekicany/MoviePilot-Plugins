@@ -21,7 +21,7 @@ from app.utils.string import StringUtils
 
 class DownloadTags(_PluginBase):
     # 插件名称
-    plugin_name = "下载任务标签"
+    plugin_name = "下载器标签"
     # 插件描述
     plugin_desc = "自动给下载任务打站点标签、剧集名称标签-带前缀版(下载任务分类与标签改)"
     # 插件图标
@@ -29,7 +29,7 @@ class DownloadTags(_PluginBase):
     # 插件版本
     plugin_version = "1.0"
     # 插件作者
-    plugin_author = "cha"
+    plugin_author = "猹"
     # 作者主页
     author_url = "https://github.com/kanekicany"
     # 插件配置项ID前缀
@@ -265,7 +265,7 @@ class DownloadTags(_PluginBase):
                     _tags = []
                     # 站点标签, 如果勾选开关的话 因允许torrent_site为空时运行到此, 因此需要判断torrent_site不为空
                     if self._enabled_tag and history.torrent_site:
-                        tag = self._site_prefix_tag + history.site_name if self._site_prefix_tag else history.site_name
+                        tag = self._site_prefix_tag + history.torrent_site if self._site_prefix_tag else history.torrent_site
                         _tags.append(tag)
                     # 媒体标题标签, 如果勾选开关的话 因允许title为空时运行到此, 因此需要判断title不为空
                     if self._enabled_media_tag and history.title:
