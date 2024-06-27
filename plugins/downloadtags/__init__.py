@@ -23,7 +23,7 @@ class DownloadTags(_PluginBase):
     # 插件名称
     plugin_name = "下载任务标签"
     # 插件描述
-    plugin_desc = "自动给下载任务打站点标签、剧集名称标签"
+    plugin_desc = "自动给下载任务打站点标签、剧集名称标签-带前缀版(下载任务分类与标签改)"
     # 插件图标
     plugin_icon = "DownloadTags.png"
     # 插件版本
@@ -137,7 +137,7 @@ class DownloadTags(_PluginBase):
                 if self._interval == "固定间隔":
                     if self._interval_unit == "小时":
                         return [{
-                            "id": "DownloadTags",
+                            "id": "downloadtags",
                             "name": "补全下载历史的标签",
                             "trigger": "interval",
                             "func": self._complemented_history,
@@ -150,7 +150,7 @@ class DownloadTags(_PluginBase):
                             self._interval_time = 5
                             logger.info(f"{self.LOG_TAG}启动定时服务: 最小不少于5分钟, 防止执行间隔太短任务冲突")
                         return [{
-                            "id": "DownloadTags",
+                            "id": "downloadtags",
                             "name": "补全下载历史的标签",
                             "trigger": "interval",
                             "func": self._complemented_history,
@@ -160,7 +160,7 @@ class DownloadTags(_PluginBase):
                         }]
                 else:
                     return [{
-                        "id": "DownloadTags",
+                        "id": "downloadtags",
                         "name": "补全下载历史的标签",
                         "trigger": CronTrigger.from_crontab(self._interval_cron),
                         "func": self._complemented_history,
