@@ -25,7 +25,7 @@ class DownloadTags(_PluginBase):
     # 插件描述
     plugin_desc = "自动给下载任务打站点标签、剧集名称标签-带前缀版(下载任务分类与标签改)"
     # 插件图标
-    plugin_icon = "DownloadTags.png"
+    plugin_icon = "https://raw.githubusercontent.com/kanekicany/MoviePilot-Plugins/main/icons/DownloadTags.png"
     # 插件版本
     plugin_version = "1.0"
     # 插件作者
