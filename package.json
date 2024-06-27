@@ -1,0 +1,14 @@
+{
+      "DownloadTag": {
+        "name": "下载任务标签",
+        "description": "自动给下载任务打站点标签、剧集名称标签-带前缀版(下载任务分类与标签改)",
+        "labels": "下载管理",
+        "version": "1.0",
+        "icon": "DownloadTags.png",
+        "author": "猹",
+        "level": 5,
+        "history": {
+          "v1.0": "init"
+        }
+      }
+}
