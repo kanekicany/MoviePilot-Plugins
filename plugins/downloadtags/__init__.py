@@ -19,13 +19,13 @@ from app.helper.sites import SitesHelper
 from app.utils.string import StringUtils
 
 
-class DownloadTags(_PluginBase):
+class DownloadCategoryTags(_PluginBase):
     # 插件名称
-    plugin_name = "下载器标签"
+    plugin_name = "下载器分类与标签"
     # 插件描述
-    plugin_desc = "自动给下载任务打站点标签、剧集名称标签-带前缀版(下载任务分类与标签改)"
+    plugin_desc = "自动给下载任务按媒体类型分类，添加剧集名称标签、站点标签-带前缀版(下载任务分类与标签改)"
     # 插件图标
-    plugin_icon = "https://raw.githubusercontent.com/kanekicany/MoviePilot-Plugins/main/icons/DownloadTags.png"
+    plugin_icon = "https://raw.githubusercontent.com/kanekicany/MoviePilot-Plugins/main/icons/DownloadCategoryTags.png"
     # 插件版本
     plugin_version = "1.0"
     # 插件作者
@@ -33,13 +33,13 @@ class DownloadTags(_PluginBase):
     # 作者主页
     author_url = "https://github.com/kanekicany"
     # 插件配置项ID前缀
-    plugin_config_prefix = "DownloadTags_"
+    plugin_config_prefix = "DownloadCategoryTags_"
     # 加载顺序
     plugin_order = 5
     # 可使用的用户级别
     auth_level = 2
     # 日志前缀
-    LOG_TAG = "[DownloadTags] "
+    LOG_TAG = "[DownloadCategoryTags] "
 
     # 退出事件
     _event = threading.Event()
@@ -55,13 +55,16 @@ class DownloadTags(_PluginBase):
     _interval_cron = "5 4 * * *"
     _interval_time = 6
     _interval_unit = "小时"
-    _enabled_tag = True
-    _enabled_media_tag = False
-    _enabled_media_prefix_tag = False
-    _site_prefix_tag = None
+    _enabled_category = True
+    _enabled_media_tag = True
+    _enabled_site_tag = True
+    _category_movie = None
+    _category_anime = None
+    _category_episode = None
     _prefix_movie_tag = None
     _prefix_anime_tag = None
     _prefix_episode_tag = None
+    _site_prefix_tag = None
 
     def init_plugin(self, config: dict = None):
         self.downloader_qb = Qbittorrent()
@@ -76,13 +79,16 @@ class DownloadTags(_PluginBase):
             self._interval_cron = config.get("interval_cron") or "5 4 * * *"
             self._interval_time = self.str_to_number(config.get("interval_time"), 6)
             self._interval_unit = config.get("interval_unit") or "小时"
-            self._enabled_tag = config.get("enabled_tag")
+            self._enabled_category = config.get("enabled_category")
             self._enabled_media_tag = config.get("enabled_media_tag")
-            self._enabled_media_prefix_tag = config.get("enabled_media_prefix_tag")
-            self._site_prefix_tag = config.get("site_prefix_tag")
+            self._enabled_site_tag = config.get("enabled_site_tag")
+            self._category_movie = config.get("category_movie") or 'movie'
+            self._category_anime = config.get("category_anime") or 'anime'
+            self._category_episode = config.get("category_episode") or 'episode'
             self._prefix_movie_tag = config.get("prefix_movie_tag")
             self._prefix_anime_tag = config.get("prefix_anime_tag")
             self._prefix_episode_tag = config.get("prefix_episode_tag")
+            self._site_prefix_tag = config.get("site_prefix_tag")
             if not ("interval_cron" in config):
                 # 新版本v1.6更新插件配置默认配置
                 config["interval"] = self._interval
@@ -102,7 +108,7 @@ class DownloadTags(_PluginBase):
             self._onlyonce = False
             config.update({"onlyonce": self._onlyonce})
             self.update_config(config)
-            # 添加 补全下载历史的标签 任务
+            # 添加 检查所有下载任务并打标签 任务
             self._scheduler.add_job(func=self._complemented_history, trigger='date',
                                     run_date=datetime.datetime.now(
                                         tz=pytz.timezone(settings.TZ)) + datetime.timedelta(seconds=3)
@@ -139,8 +145,8 @@ class DownloadTags(_PluginBase):
                 if self._interval == "固定间隔":
                     if self._interval_unit == "小时":
                         return [{
-                            "id": "downloadtags",
-                            "name": "补全下载历史的标签",
+                            "id": "downloadcategorytags",
+                            "name": "检查所有下载任务并进行分类打标签",
                             "trigger": "interval",
                             "func": self._complemented_history,
                             "kwargs": {
@@ -152,8 +158,8 @@ class DownloadTags(_PluginBase):
                             self._interval_time = 5
                             logger.info(f"{self.LOG_TAG}启动定时服务: 最小不少于5分钟, 防止执行间隔太短任务冲突")
                         return [{
-                            "id": "downloadtags",
-                            "name": "补全下载历史的标签",
+                            "id": "downloadcategorytags",
+                            "name": "检查所有下载任务并进行分类打标签",
                             "trigger": "interval",
                             "func": self._complemented_history,
                             "kwargs": {
@@ -162,8 +168,8 @@ class DownloadTags(_PluginBase):
                         }]
                 else:
                     return [{
-                        "id": "downloadtags",
-                        "name": "补全下载历史的标签",
+                        "id": "downloadcategorytags",
+                        "name": "检查所有下载任务并进行分类打标签",
                         "trigger": CronTrigger.from_crontab(self._interval_cron),
                         "func": self._complemented_history,
                         "kwargs": {}
@@ -179,7 +185,7 @@ class DownloadTags(_PluginBase):
 
     def _complemented_history(self):
         """
-        补全下载历史的标签
+        检查所有下载任务并进行分类打标签
         """
         logger.info(f"{self.LOG_TAG}开始执行 ...")
         # 记录处理的种子, 供辅种(无下载历史)使用
@@ -221,6 +227,9 @@ class DownloadTags(_PluginBase):
                     _hash = self._get_hash(torrent=torrent, dl_type=DOWNLOADER)
                     if not _hash:
                         continue
+                    # 获取种子当前分类
+                    torrent_cat = self._get_category(torrent=torrent, dl_type=DOWNLOADER)
+                    # 获取标签前缀
                     prefixes_to_remove = [self._site_prefix_tag, self._prefix_movie_tag, self._prefix_anime_tag, self._prefix_episode_tag]
                     # 获取种子当前标签
                     prefix_torrent_tags = self._get_label(torrent=torrent, dl_type=DOWNLOADER)
@@ -263,15 +272,11 @@ class DownloadTags(_PluginBase):
                         # 如果通过tracker还是无法获取站点名称, 且tmdbid, type, title都是空的, 那么跳过当前种子
                         if not history.torrent_site and not history.tmdbid and not history.type and not history.title:
                             continue
-                    # 按设置生成需要写入的标签
-                    _tags = []
-                    # 站点标签, 如果勾选开关的话 因允许torrent_site为空时运行到此, 因此需要判断torrent_site不为空
-                    if self._enabled_tag and history.torrent_site:
-                        tag = self._site_prefix_tag + history.torrent_site if self._site_prefix_tag else history.torrent_site
-                        _tags.append(tag)
-                    # 媒体标题标签, 如果勾选开关的话 因允许title为空时运行到此, 因此需要判断title不为空
-                    if self._enabled_media_tag and history.title:
-                        # 如果是电视剧 需要区分是否动漫
+
+                    _category = None
+                    _prefix = None
+                    if self._enabled_category or self._enabled_media_tag:
+                        # 如果是电视 需要区分是否动漫
                         genre_ids = None
                         # 因允许tmdbid为空时运行到此, 因此需要判断tmdbid不为空
                         history_type = MediaType(history.type) if history.type else None
@@ -280,20 +285,35 @@ class DownloadTags(_PluginBase):
                             tmdb_info = self.chain.tmdb_info(mtype=history_type, tmdbid=history.tmdbid)
                             if tmdb_info:
                                 genre_ids = tmdb_info.get("genre_ids")
-                        _prefix = self._genre_ids_get_prefix(history.type, genre_ids)
+                        _category, _prefix = self._genre_ids_get_prefix(history.type, genre_ids)
+
+                    _cat = None
+                    # 分类, 如果勾选开关的话 <tr暂不支持> 因允许mtype为空时运行到此, 因此需要判断mtype不为空。为防止不必要的识别, 种子已经存在分类torrent_cat时 也不执行
+                    if DOWNLOADER == "qbittorrent" and self._enabled_category and not torrent_cat and history.type:
+                        _cat = _category
+
+                    # 按设置生成需要写入的标签
+                    _tags = []
+                    # 媒体标题标签, 如果勾选开关的话 因允许title为空时运行到此, 因此需要判断title不为空
+                    if self._enabled_media_tag and history.title:
                         tag = _prefix + history.title if _prefix else history.title
-                        if _prefix and self._enabled_media_prefix_tag:
-                            tag = _prefix
+                        _tags.append(tag)
+
+                    # 站点标签, 如果勾选开关的话 因允许torrent_site为空时运行到此, 因此需要判断torrent_site不为空
+                    if self._enabled_site_tag and history.torrent_site:
+                        tag = self._site_prefix_tag + history.torrent_site if self._site_prefix_tag else history.torrent_site
                         _tags.append(tag)
 
                     # 去除种子已经存在的标签
                     if _tags and prefix_torrent_tags:
                         _tags = list(set(_tags) - set(prefix_torrent_tags))
+                    if _cat == torrent_cat:
+                        _cat = None
                     # 判断当前种子是否不需要修改
-                    if not _tags:
+                    if not _cat and not _tags:
                         continue
                     # 执行通用方法, 设置种子标签
-                    self._set_torrent_info(DOWNLOADER=DOWNLOADER, _hash=_hash, _torrent=torrent, _tags=_tags,
+                    self._set_torrent_info(DOWNLOADER=DOWNLOADER, _hash=_hash, _torrent=torrent, _cat=_cat, _tags=_tags,
                                            _original_tags=prefix_torrent_tags)
                 except Exception as e:
                     logger.error(
@@ -305,20 +325,24 @@ class DownloadTags(_PluginBase):
         """
         根据genre_ids判断是否<动漫>分类
         """
+        _category = None
         _prefix = None
         if mtype == MediaType.MOVIE or mtype == MediaType.MOVIE.value:
             # 电影
+            _category = self._category_movie
             _prefix = self._prefix_movie_tag
         elif mtype:
             ANIME_GENREIDS = settings.ANIME_GENREIDS
             if genre_ids \
                     and set(genre_ids).intersection(set(ANIME_GENREIDS)):
                 # 动漫
+                _category = self._category_anime
                 _prefix = self._prefix_anime_tag
             else:
-                # 电视剧
+                # 电视
+                _category = self._category_episode
                 _prefix = self._prefix_episode_tag
-        return _prefix
+        return _category, _prefix
 
     def _get_downloader(self, dtype: str):
         """
@@ -414,6 +438,17 @@ class DownloadTags(_PluginBase):
             return []
 
     @staticmethod
+    def _get_category(torrent: Any, dl_type: str):
+        """
+        获取种子分类
+        """
+        try:
+            return torrent.get("category") if dl_type == "qbittorrent" else None
+        except Exception as e:
+            print(str(e))
+            return None
+
+    @staticmethod
     def _get_label(torrent: Any, dl_type: str):
         """
         获取种子标签
@@ -425,7 +460,7 @@ class DownloadTags(_PluginBase):
             print(str(e))
             return []
 
-    def _set_torrent_info(self, DOWNLOADER: str, _hash: str, _torrent: Any = None, _tags=None,
+    def _set_torrent_info(self, DOWNLOADER: str, _hash: str, _torrent: Any = None, _cat: str = None, _tags=None,
                           _original_tags: list = None):
         """
         设置种子标签
@@ -447,6 +482,16 @@ class DownloadTags(_PluginBase):
         if DOWNLOADER and downloader_obj and _hash and _torrent:
             # 下载器api不通用, 因此需分开处理
             if DOWNLOADER == "qbittorrent":
+                # 设置分类 <tr暂不支持>
+                if _cat:
+                    # 尝试设置种子分类, 如果失败, 则创建再设置一遍
+                    try:
+                        _torrent.setCategory(category=_cat)
+                    except Exception as e:
+                        logger.warn(f"下载器 {DOWNLOADER} 种子id: {_hash} 设置分类 {_cat} 失败：{str(e)}, "
+                                    f"尝试创建分类再设置 ...")
+                        downloader_obj.qbc.torrents_createCategory(name=_cat)
+                        _torrent.setCategory(category=_cat)
                 # 设置标签
                 if _tags:
                     downloader_obj.set_torrents_tag(ids=_hash, tags=_tags)
@@ -479,21 +524,28 @@ class DownloadTags(_PluginBase):
             _hash = event.event_data.get("hash")
             _torrent = context.torrent_info
             _media = context.media_info
+
+            _category = None
+            _prefix = None
+            if self._enabled_category or self._enabled_media_tag:
+                _category, _prefix = self._genre_ids_get_prefix(_media.type, _media.genre_ids)
+
+            _cat = None
             _tags = []
-            # 站点标签, 如果勾选开关的话
-            if self._enabled_tag and _torrent.site_name:
-                tag = self._site_prefix_tag + _torrent.site_name if self._site_prefix_tag else _torrent.site_name
-                _tags.append(tag)
+            # 分类, 如果勾选开关的话 <tr暂不支持>
+            if self._enabled_category and _media.type:
+                _cat = _category
             # 媒体标题标签, 如果勾选开关的话
             if self._enabled_media_tag and _media.title:
-                _prefix = self._genre_ids_get_prefix(_media.type, _media.genre_ids)
                 tag = _prefix + _media.title if _prefix else _media.title
-                if _prefix and self._enabled_media_prefix_tag:
-                    tag = _prefix
                 _tags.append(tag)
-            if _hash and _tags:
+            # 站点标签, 如果勾选开关的话
+            if self._enabled_site_tag and _torrent.site_name:
+                tag = self._site_prefix_tag + _torrent.site_name if self._site_prefix_tag else _torrent.site_name
+                _tags.append(tag)
+            if _hash and (_cat or _tags):
                 # 执行通用方法, 设置种子标签
-                self._set_torrent_info(DOWNLOADER=settings.DEFAULT_DOWNLOADER, _hash=_hash, _tags=_tags)
+                self._set_torrent_info(DOWNLOADER=settings.DEFAULT_DOWNLOADER, _hash=_hash, _cat=_cat, _tags=_tags)
         except Exception as e:
             logger.error(
                 f"{self.LOG_TAG}分析下载事件时发生了错误: {str(e)}")
@@ -533,10 +585,10 @@ class DownloadTags(_PluginBase):
                                 },
                                 'content': [
                                     {
-                                        'component': 'VCheckboxBtn',
+                                        'component': 'VSwitch',
                                         'props': {
-                                            'model': 'enabled_tag',
-                                            'label': '自动站点标签',
+                                            'model': 'enabled_category',
+                                            'label': '自动媒体分类',
                                         }
                                     }
                                 ]
@@ -549,7 +601,7 @@ class DownloadTags(_PluginBase):
                                 },
                                 'content': [
                                     {
-                                        'component': 'VCheckboxBtn',
+                                        'component': 'VSwitch',
                                         'props': {
                                             'model': 'enabled_media_tag',
                                             'label': '自动剧名标签',
@@ -567,8 +619,8 @@ class DownloadTags(_PluginBase):
                                     {
                                         'component': 'VSwitch',
                                         'props': {
-                                            'model': 'enabled_media_prefix_tag',
-                                            'label': '媒体只显示前缀',
+                                            'model': 'enabled_site_tag',
+                                            'label': '自动站点标签',
                                         }
                                     }
                                 ]
@@ -689,9 +741,9 @@ class DownloadTags(_PluginBase):
                                     {
                                         'component': 'VTextField',
                                         'props': {
-                                            'model': 'site_prefix_tag',
-                                            'label': '站点标签前缀',
-                                            'placeholder': 'SITE:'
+                                            'model': 'category_movie',
+                                            'label': '电影分类名称(默认:movie)',
+                                            'placeholder': 'movie'
                                         }
                                     }
                                 ]
@@ -706,9 +758,48 @@ class DownloadTags(_PluginBase):
                                     {
                                         'component': 'VTextField',
                                         'props': {
+                                            'model': 'category_anime',
+                                            'label': '动漫分类名称(默认:anime)',
+                                            'placeholder': 'anime'
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'category_episode',
+                                            'label': '电视分类名称(默认:episode)',
+                                            'placeholder': 'episode'
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
                                             'model': 'prefix_movie_tag',
-                                            'label': '电影标签前缀',
-                                            'placeholder': 'movie:'
+                                            'label': '电影标签前缀-movie(默认:m)',
+                                            'placeholder': 'm:'
                                         }
                                     }
                                 ]
@@ -724,8 +815,8 @@ class DownloadTags(_PluginBase):
                                         'component': 'VTextField',
                                         'props': {
                                             'model': 'prefix_anime_tag',
-                                            'label': '动漫标签前缀',
-                                            'placeholder': 'anime:'
+                                            'label': '动漫标签前缀-anime(默认:a)',
+                                            'placeholder': 'a:'
                                         }
                                     }
                                 ]
@@ -741,8 +832,25 @@ class DownloadTags(_PluginBase):
                                         'component': 'VTextField',
                                         'props': {
                                             'model': 'prefix_episode_tag',
-                                            'label': '电视标签前缀',
-                                            'placeholder': 'episode:'
+                                            'label': '电视标签前缀-episode(默认:e)',
+                                            'placeholder': 'e:'
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'site_prefix_tag',
+                                            'label': '站点标签前缀-SITE(默认:S)',
+                                            'placeholder': 'S:'
                                         }
                                     }
                                 ]
@@ -775,17 +883,20 @@ class DownloadTags(_PluginBase):
         ], {
             "enabled": False,
             "onlyonce": False,
-            "enabled_tag": True,
-            "enabled_media_tag": False,
-            "enabled_media_prefix_tag": False,
+            "enabled_category": True,
+            "enabled_media_tag": True,
+            "enabled_site_tag": True,
             "interval": "计划任务",
             "interval_cron": "5 4 * * *",
             "interval_time": "6",
             "interval_unit": "小时",
-            "site_prefix_tag": "SITE:",
-            "prefix_movie_tag": "movie:",
-            "prefix_anime_tag": "anime:",
-            "prefix_episode_tag": "episode:",
+            "category_movie": "movie",
+            "category_anime": "anime",
+            "category_episode": "episode",
+            "prefix_movie_tag": "m:",
+            "prefix_anime_tag": "a:",
+            "prefix_episode_tag": "e:",
+            "site_prefix_tag": "S:"
         }
 
     def get_page(self) -> List[dict]:
