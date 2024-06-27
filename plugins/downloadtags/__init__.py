@@ -29,7 +29,7 @@ class DownloadTags(_PluginBase):
     # 插件版本
     plugin_version = "1.0"
     # 插件作者
-    plugin_author = "猹"
+    plugin_author = "cha"
     # 作者主页
     author_url = "https://github.com/kanekicany"
     # 插件配置项ID前缀

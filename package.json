@@ -5,7 +5,7 @@
         "labels": "下载管理",
         "version": "1.0",
         "icon": "https://raw.githubusercontent.com/kanekicany/MoviePilot-Plugins/main/icons/DownloadTags.png",
-        "author": "猹",
+        "author": "cha",
         "level": 2,
         "history": {
           "v1.0": "init"
