@@ -55,8 +55,9 @@ class DownloadTags(_PluginBase):
     _interval_cron = "5 4 * * *"
     _interval_time = 6
     _interval_unit = "小时"
-    _enabled_media_tag = False
     _enabled_tag = True
+    _enabled_media_tag = False
+    _enabled_media_prefix_tag = False
     _site_prefix_tag = None
     _prefix_movie_tag = None
     _prefix_anime_tag = None
@@ -75,8 +76,9 @@ class DownloadTags(_PluginBase):
             self._interval_cron = config.get("interval_cron") or "5 4 * * *"
             self._interval_time = self.str_to_number(config.get("interval_time"), 6)
             self._interval_unit = config.get("interval_unit") or "小时"
-            self._enabled_media_tag = config.get("enabled_media_tag")
             self._enabled_tag = config.get("enabled_tag")
+            self._enabled_media_tag = config.get("enabled_media_tag")
+            self._enabled_media_prefix_tag = config.get("enabled_media_prefix_tag")
             self._site_prefix_tag = config.get("site_prefix_tag")
             self._prefix_movie_tag = config.get("prefix_movie_tag")
             self._prefix_anime_tag = config.get("prefix_anime_tag")
@@ -280,6 +282,8 @@ class DownloadTags(_PluginBase):
                                 genre_ids = tmdb_info.get("genre_ids")
                         _prefix = self._genre_ids_get_prefix(history.type, genre_ids)
                         tag = _prefix + history.title if _prefix else history.title
+                        if _prefix and self._enabled_media_prefix_tag:
+                            tag = _prefix
                         _tags.append(tag)
 
                     # 去除种子已经存在的标签
@@ -484,6 +488,8 @@ class DownloadTags(_PluginBase):
             if self._enabled_media_tag and _media.title:
                 _prefix = self._genre_ids_get_prefix(_media.type, _media.genre_ids)
                 tag = _prefix + _media.title if _prefix else _media.title
+                if _prefix and self._enabled_media_prefix_tag:
+                    tag = _prefix
                 _tags.append(tag)
             if _hash and _tags:
                 # 执行通用方法, 设置种子标签
@@ -550,6 +556,22 @@ class DownloadTags(_PluginBase):
                                         }
                                     }
                                 ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 3
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VSwitch',
+                                        'props': {
+                                            'model': 'enabled_media_prefix_tag',
+                                            'label': '媒体只显示前缀',
+                                        }
+                                    }
+                                ]
                             }
                         ]
                     },
@@ -567,7 +589,7 @@ class DownloadTags(_PluginBase):
                                         'component': 'VCheckboxBtn',
                                         'props': {
                                             'model': 'onlyonce',
-                                            'label': '补全下载历史的标签(一次性任务)'
+                                            'label': '检查所有任务并打标签(只执行一次)'
                                         }
                                     }
                                 ]
@@ -755,6 +777,7 @@ class DownloadTags(_PluginBase):
             "onlyonce": False,
             "enabled_tag": True,
             "enabled_media_tag": False,
+            "enabled_media_prefix_tag": False,
             "interval": "计划任务",
             "interval_cron": "5 4 * * *",
             "interval_time": "6",
