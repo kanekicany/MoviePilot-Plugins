@@ -37,7 +37,7 @@ class DownloadTags(_PluginBase):
     # 加载顺序
     plugin_order = 5
     # 可使用的用户级别
-    auth_level = 1
+    auth_level = 2
     # 日志前缀
     LOG_TAG = "[DownloadTags] "
 
