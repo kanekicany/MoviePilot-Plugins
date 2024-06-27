@@ -1,5 +1,5 @@
 {
-      "DownloadTag": {
+      "DownloadTags": {
         "name": "下载任务标签",
         "description": "自动给下载任务打站点标签、剧集名称标签-带前缀版(下载任务分类与标签改)",
         "labels": "下载管理",
