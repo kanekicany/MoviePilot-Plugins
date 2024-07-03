@@ -27,7 +27,7 @@ class DownloadCategoryTags(_PluginBase):
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/kanekicany/MoviePilot-Plugins/main/icons/DownloadCategoryTags.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.1"
     # 插件作者
     plugin_author = "猹"
     # 作者主页
@@ -233,6 +233,8 @@ class DownloadCategoryTags(_PluginBase):
                     prefixes_to_remove = [self._site_prefix_tag, self._prefix_movie_tag, self._prefix_anime_tag, self._prefix_episode_tag]
                     # 获取种子当前标签
                     prefix_torrent_tags = self._get_label(torrent=torrent, dl_type=DOWNLOADER)
+                    # 检查是否以有包含前缀的标签
+                    valid_tags = any(tag.startswith(self._prefix_movie_tag) or tag.startswith(self._prefix_anime_tag) or tag.startswith(self._prefix_episode_tag) for tag in prefix_torrent_tags)
                     # 对每个标签尝试去除所有前缀
                     torrent_tags = prefix_torrent_tags
                     for prefix in prefixes_to_remove:
@@ -275,7 +277,7 @@ class DownloadCategoryTags(_PluginBase):
 
                     _category = None
                     _prefix = None
-                    if self._enabled_category or self._enabled_media_tag:
+                    if not valid_tags and (self._enabled_category or self._enabled_media_tag):
                         # 如果是电视 需要区分是否动漫
                         genre_ids = None
                         # 因允许tmdbid为空时运行到此, 因此需要判断tmdbid不为空
@@ -295,7 +297,7 @@ class DownloadCategoryTags(_PluginBase):
                     # 按设置生成需要写入的标签
                     _tags = []
                     # 媒体标题标签, 如果勾选开关的话 因允许title为空时运行到此, 因此需要判断title不为空
-                    if self._enabled_media_tag and history.title:
+                    if not valid_tags and self._enabled_media_tag and history.title:
                         tag = _prefix + history.title if _prefix else history.title
                         _tags.append(tag)
 
