@@ -7,6 +7,7 @@
         "icon": "https://raw.githubusercontent.com/kanekicany/MoviePilot-Plugins/main/icons/DownloadCategoryTags.png",
         "author": "猹",
         "level": 2,
+        "v2": true,
         "history": {
           "v1.1": "打过媒体标签的不再重复打标签",
           "v1.0": "init"
