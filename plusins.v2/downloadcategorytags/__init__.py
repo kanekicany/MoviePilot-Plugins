@@ -23,7 +23,7 @@ class DownloadCategoryTags(_PluginBase):
     # 插件名称
     plugin_name = "下载器分类与标签"
     # 插件描述
-    plugin_desc = "自动给下载任务按媒体类型分类，添加剧集名称标签、站点标签-带前缀版(下载任务分类与标签改)"
+    plugin_desc = "自动给下载任务按媒体类型分类，添加剧集名称标签、站点标签-带前缀版(基于叮叮当原版修改)"
     # 插件图标
     plugin_icon = "https://raw.githubusercontent.com/kanekicany/MoviePilot-Plugins/main/icons/DownloadCategoryTags.png"
     # 插件版本
