@@ -1,7 +1,7 @@
 {
       "DownloadCategoryTags": {
         "name": "下载器分类与标签",
-        "description": "自动给下载任务按媒体类型分类，添加剧集名称标签、站点标签-带前缀版((基于叮叮当原版修改))",
+        "description": "自动给下载任务按媒体类型分类，添加剧集名称标签、站点标签-带前缀版(基于叮叮当原版修改)",
         "labels": "下载管理",
         "version": "1.2",
         "icon": "https://raw.githubusercontent.com/kanekicany/MoviePilot-Plugins/main/icons/DownloadCategoryTags.png",
